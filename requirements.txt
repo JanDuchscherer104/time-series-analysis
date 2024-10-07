@@ -1,0 +1,27 @@
+# Core dependencies
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+
+# Time Series Analysis packages
+statsmodels
+pmdarima
+arch
+
+# Forecasting packages
+prophet
+neuralprophet
+
+# Visualization and utilities
+plotly
+holoviews
+
+# For Jupyter Notebooks (if needed)
+jupyterlab
+ipykernel
+
+# Performance enhancements (optional)
+numba
+
