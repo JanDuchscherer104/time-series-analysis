@@ -105,3 +105,9 @@ aus_production |> gg_subseries(Bricks)
 aus_production |> gg_lag(Bricks, geom = "point")
 
 aus_production |> ACF(Bricks) |> autoplot()
+
+# Ex 5
+# 1 : B
+# 2 : A
+# 3 : D
+# 4 : C
