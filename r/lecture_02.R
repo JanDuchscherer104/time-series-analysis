@@ -4,6 +4,7 @@ library(dplyr)
 library(ggplot2)
 library(feasts)
 library(readxl)
+library(feasts)
 
 tute1 <- read.csv2(".data/tute1.csv", header=TRUE, sep = ",")
 tute1 <- tute1 |> 
@@ -91,3 +92,16 @@ aus_retail_series |> gg_lag(Turnover, lags = 1:12)
 
 # ACF
 aus_retail_series |> ACF(Turnover, lag_max = 48) |> autoplot()
+
+# Ex 4
+
+# Bricks (aus_production)
+aus_production |> autoplot(Bricks) + geom_point()
+
+aus_production |> gg_season(Bricks)
+
+aus_production |> gg_subseries(Bricks)
+
+aus_production |> gg_lag(Bricks, geom = "point")
+
+aus_production |> ACF(Bricks) |> autoplot()
