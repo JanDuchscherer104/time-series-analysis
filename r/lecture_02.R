@@ -1,4 +1,5 @@
 library(tsibble)
+library(tsibbledata)
 library(dplyr)
 library(ggplot2)
 library(feasts)
@@ -70,3 +71,23 @@ total_by_state <- tourism_tsibble |>
   arrange(desc(TotalTrips))
 
 total_by_state
+
+# Ex 3
+set.seed(1122334455)
+aus_retail_series <- aus_retail |>
+  filter(`Series ID` == sample(aus_retail$`Series ID`,1))
+
+# autoplot
+aus_retail_series |> autoplot(Turnover)
+
+# gg_season
+aus_retail_series |> gg_season(Turnover)
+
+# gg_subseries
+aus_retail_series |> gg_subseries(Turnover)
+
+# gg_lag
+aus_retail_series |> gg_lag(Turnover, lags = 1:12)
+
+# ACF
+aus_retail_series |> ACF(Turnover, lag_max = 48) |> autoplot()
