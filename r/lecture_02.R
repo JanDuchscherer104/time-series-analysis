@@ -5,6 +5,7 @@ library(ggplot2)
 library(feasts)
 library(readxl)
 library(feasts)
+library(lubridate)
 
 tute1 <- read.csv2(".data/tute1.csv", header=TRUE, sep = ",")
 tute1 <- tute1 |> 
@@ -111,3 +112,24 @@ aus_production |> ACF(Bricks) |> autoplot()
 # 2 : A
 # 3 : D
 # 4 : C
+
+# Ex 6
+dgoog_plain <- gafa_stock |>
+  filter(Symbol == "GOOG", year(Date) >= 2018) |>
+  mutate(diff = difference(Close))
+
+
+# Reindexing because the stock exchange doesnt open on weekends and the gap should be closed
+dgoog_reindexed <- gafa_stock |>
+  filter(Symbol == "GOOG", year(Date) >= 2018) |>
+  mutate(trading_day = row_number()) |>
+  update_tsibble(index = trading_day, regular = TRUE) |>
+  mutate(diff = difference(Close))
+
+dgoog_plain |> autoplot(diff)
+dgoog_reindexed |> autoplot(diff)
+
+dgoog_plain |> ACF(diff) |> autoplot()
+dgoog_reindexed |> ACF(diff) |> autoplot()
+
+# It does look like white noise, however there is a significant low at lag 8
