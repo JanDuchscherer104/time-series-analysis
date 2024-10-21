@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Tuple
+from typing import Iterable, Literal, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,7 +8,7 @@ import seaborn as sns
 def season_plot(
     df: pd.DataFrame,
     period: Literal["quarter", "month", "week", "day"],
-    value_column: str,
+    value_col: str,
     hue: Optional[str] = None,
     palette: Optional[str] = "viridis",
     add_mean_line: bool = False,
@@ -21,7 +21,7 @@ def season_plot(
             The DataFrame containing the time series data, with the time column as the index.
         period : {'quarter', 'month', 'week', 'day'}
             The period over which to plot seasonality.
-        value_column : str
+        value_col : str
             The column name containing the values to be plotted (e.g., temperature, sales, etc.).
         palette : str, optional
             The color palette to use for the lines. Default is 'viridis'.
@@ -61,7 +61,7 @@ def season_plot(
             x_tick_labels = [f"W{w}" for w in range(1, 53)]
         case "day":
             df["Season"] = df.index.weekday + 1  # 1 = Monday, ..., 7 = Sunday
-            x_label = "Day of Week"
+            x_label = "Day"
             x_tick_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         case _:
             raise ValueError(
@@ -73,7 +73,7 @@ def season_plot(
     sns.lineplot(
         data=df,
         x="Season",
-        y=value_column,
+        y=value_col,
         hue=hue or "Season",
         palette=palette,
         ax=ax,
@@ -83,10 +83,10 @@ def season_plot(
 
     # Add mean line if specified
     if add_mean_line:
-        mean_values = df.groupby("Season")[value_column].mean().reset_index()
+        mean_values = df.groupby("Season")[value_col].mean().reset_index()
         ax.plot(
             mean_values["Season"],
-            mean_values[value_column],
+            mean_values[value_col],
             color="red",
             linestyle="--",
             linewidth=1.5,
@@ -94,7 +94,7 @@ def season_plot(
 
     # Set labels and ticks
     ax.set_xlabel(x_label)
-    ax.set_ylabel(value_column)
+    ax.set_ylabel(value_col)
     if x_tick_labels is not None:
         ax.set_xticks(range(1, len(x_tick_labels) + 1))
         ax.set_xticklabels(x_tick_labels, rotation=45)
@@ -105,7 +105,7 @@ def season_plot(
 def subseries_plot(
     df: pd.DataFrame,
     period: Literal["quarter", "month", "week", "day"],
-    value_column: str,
+    value_col: str,
     x_col: Literal["year"] | str = "year",
     hue_col: Optional[str] = None,
     add_mean_line: bool = False,
@@ -120,7 +120,7 @@ def subseries_plot(
             The DataFrame containing the time series data, with the time column as the index.
         period : {'quarter', 'month', 'week', 'day'}
             The period over which to plot the subseries.
-        value_column : str
+        value_col : str
             The column name containing the values to be plotted.
         x_col : {'year', 'month'}, optional
             The column to use for the x-axis. Default is 'year'.
@@ -179,13 +179,13 @@ def subseries_plot(
         height=4,
         palette=palette,
     )
-    g.map_dataframe(sns.lineplot, x=x_col, y=value_column)
+    g.map_dataframe(sns.lineplot, x=x_col, y=value_col)
 
     # Add mean line to each subplot
     if add_mean_line:
         for ax in g.axes.flat:
             subperiod = ax.get_title().split("=")[1].strip()
-            mean_value = df[df["SubPeriod"] == subperiod][value_column].mean()
+            mean_value = df[df["SubPeriod"] == subperiod][value_col].mean()
             ax.axhline(mean_value, ls="--", color="red", label="Mean")
 
     # Add legens, labels and titles
@@ -194,8 +194,72 @@ def subseries_plot(
         g._legend.set_bbox_to_anchor((1, 0.5))
 
     g.set_titles(col_template="{col_name}")
-    g.set_axis_labels(x_col, value_column)
+    g.set_axis_labels(x_col, value_col)
     for ax in g.axes.flat:
         plt.setp(ax.get_xticklabels(), rotation=45)
 
+    return g
+
+
+def lag_plot(
+    df: pd.DataFrame,
+    value_column: str,
+    lags: Iterable[int],
+    col_wrap: int = 4,
+) -> sns.FacetGrid:
+    """
+    Creates lag plots for a time series using the specified lags, with a superimposed KDE.
+
+    Args:
+        df : pd.DataFrame
+            The DataFrame containing the time series data, with the time column as the index.
+        value_column : str
+            The column name containing the values to be plotted.
+        lags : Iterable[int]
+            Iterable of lags to create the lag plots for (e.g., [1, 2, 3]).
+        col_wrap : int, optional
+            The number of columns to wrap the plots into. Default is 4.
+        palette : str, optional
+            The color palette to use for the KDE. Default is 'coolwarm'.
+
+    Returns:
+        sns.FacetGrid
+            A Seaborn FacetGrid object containing the lag plots.
+    """
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise ValueError("The DataFrame must have a DatetimeIndex as its index.")
+
+    # Compute lags values
+    lagged_data = dict(
+        map((lambda k: (f"{value_column}(t-{k})", df[value_column].shift(k))), lags)
+    )
+    lagged_data[value_column] = df[value_column]
+    lag_df = pd.DataFrame(lagged_data)
+    lag_df = lag_df.dropna().melt(
+        id_vars=value_column, var_name="Lag", value_name="Lagged Value"
+    )  # melt: wide -> long
+
+    # Create FacetGrid
+    g = sns.FacetGrid(
+        lag_df, col="Lag", col_wrap=col_wrap, height=4, sharex=False, sharey=False
+    )
+    g.map_dataframe(sns.scatterplot, x="Lagged Value", y=value_column, color="black")
+    g.map_dataframe(
+        sns.kdeplot,
+        x="Lagged Value",
+        y=value_column,
+        fill=True,
+        levels=5,
+        alpha=0.5,
+        cmap="coolwarm",
+    )
+
+    # Adjust color intensity, reverse it to match high density = red
+    for ax in g.axes.flat:
+        ax.collections[1].set_alpha(0.3)
+
+    g.set_axis_labels("Lagged Value", f"{value_column}(t)")
+    g.set_titles(col_template="{col_name}")
+
+    plt.tight_layout()
     return g

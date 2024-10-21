@@ -40,3 +40,16 @@ The `subseries_plot` function creates a subseries plot using Seaborn based on th
 
 - **Returns:**
   - `sns.FacetGrid`: A Seaborn FacetGrid object containing the plot.
+
+### `lag_plot`
+
+The `lag_plot` function creates lag plots for a time series using the specified lags, with a superimposed KDE.
+
+- **Parameters:**
+  - `df` (pd.DataFrame): The DataFrame containing the time series data, with the time column as the index.
+  - `value_column` (str): The column name containing the values to be plotted.
+  - `lags` (Iterable[int]): Iterable of lags to create the lag plots for (e.g., [1, 2, 3]).
+  - `col_wrap` (int, default=4): The number of columns to wrap the plots into.
+
+- **Returns:**
+  - `sns.FacetGrid`: A Seaborn FacetGrid object containing the lag plots.
